@@ -146,21 +146,23 @@ async function loadClass(){
 
 alert(testUrl);
         
-        const response =
-        await fetch(
-            API_URL +
-            "?action=getSentences" +
-            "&className=" +
-            encodeURIComponent(className) +
-            "&language=" +
-            encodeURIComponent(language)
-        );
+       const response =
+await fetch(
+    API_URL +
+    "?class=" +
+    encodeURIComponent(className) +
+    "&language=" +
+    encodeURIComponent(language)
+);
 
-        sentences =
-        await response.json();
-        alert(JSON.stringify(data));
-        sentences = data; 
-        alert("Length = " + sentences.length);
+const data =
+await response.json();
+
+alert(JSON.stringify(data));
+
+sentences = data;
+
+alert("Length = " + sentences.length);
 
         current = 0;
         totalScore = 0;
