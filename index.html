@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+
+<style>
+body{
+    font-family:Arial,sans-serif;
+    text-align:center;
+    background:white;
+    margin-top:20px;
+}
+
+h1{
+    font-size:60px;
+    color:#333;
+}
+
+#controls{
+    margin:20px;
+}
+
+select,button,input{
+    padding:12px;
+    font-size:20px;
+    margin:5px;
+    cursor:pointer;
+}
+
+#sentence{
+    margin-top:60px;
+    font-size:80px;
+    font-weight:bold;
+    color:blue;
+    min-height:150px;
+    padding:20px;
+}
+
+#spokenText{
+    margin-top:30px;
+    font-size:32px;
+    color:green;
+}
+
+#score{
+    margin-top:20px;
+    font-size:50px;
+    font-weight:bold;
+    color:red;
+}
+</style>
+
+</head>
+
+<body>
+
+<h1>Reading Practice</h1>
+
+<div id="controls">
+
+<input
+type="text"
+id="studentName"
+placeholder="Enter Student Name"
+style="padding:12px;font-size:20px;width:300px;">
+
+<br><br>
+
+<select id="classSelect">
+<option value="Nursery">Nursery</option>
+<option value="LKG">LKG</option>
+<option value="UKG">UKG</option>
+<option value="Class1">Class1</option>
+<option value="Class2">Class2</option>
+<option value="Class3">Class3</option>
+<option value="Class4">Class4</option>
+<option value="Class5">Class5</option>
+</select>
+
+<button onclick="loadClass()">Load</button>
+
+<br><br>
+
+<select id="languageSelect">
+<option value="en-US">English</option>
+<option value="te-IN">Telugu</option>
+<option value="hi-IN">Hindi</option>
+</select>
+
+<br><br>
+
+<button onclick="setSpeed(5000)">🐢 Slow</button>
+<button onclick="setSpeed(3000)">🙂 Normal</button>
+<button onclick="setSpeed(1000)">🚀 Fast</button>
+
+<button onclick="toggleFullscreen()">📺 Full Screen</button>
+
+<br><br>
+
+<button onclick="startRecognition()">🎤 Start Reading</button>
+<button onclick="stopRecognition()">⏹ Stop</button>
+
+</div>
+
+<div id="sentence">
+Select Class, Language and Click Load
+</div>
+
+<div id="spokenText"></div>
+
+<div id="score"></div>
+
+<script>
+
+let sentences = [];
+let current = 0;
+let timer = null;
+let speed = 3000;
+let recognition = null;
+
+let totalScore = 0;
+let scoreCount = 0;
+
+function loadClass(){
+
+    let className =
+    document.getElementById("classSelect").value;
+
+    let languageText =
+    document.getElementById("languageSelect")
+    .options[
+      document.getElementById("languageSelect").selectedIndex
+    ].text;
+
+    google.script.run
+    .withSuccessHandler(function(data){
+
+        sentences = data;
+        current = 0;
+
+        totalScore = 0;
+        scoreCount = 0;
+
+        clearInterval(timer);
+
+        document.getElementById("score").innerHTML = "";
+        document.getElementById("spokenText").innerHTML = "";
+
+        if(sentences.length > 0){
+            document.getElementById("sentence").innerHTML =
+            sentences[0];
+
+            timer =
+            setInterval(showSentence, speed);
+        }
+
+    })
+    .withFailureHandler(function(error){
+
+        document.getElementById("sentence").innerHTML =
+        error.message;
+
+    })
+    .getSentences(className, languageText);
+}
+
+function showSentence(){
+
+    current++;
+
+    if(current >= sentences.length){
+
+        clearInterval(timer);
+
+        let finalScore = 0;
+
+        if(scoreCount > 0){
+            finalScore = Math.round(totalScore / scoreCount);
+        }
+
+        saveFinalResult(finalScore);
+
+        let student =
+        document.getElementById("studentName").value;
+
+        document.getElementById("sentence").innerHTML =
+        "🏆 Certificate of Completion<br><br>" +
+        student +
+        "<br><br>Successfully Completed Reading Practice<br><br>" +
+        "Final Score : " +
+        finalScore + "%";
+
+        return;
+    }
+
+    document.getElementById("sentence").innerHTML =
+    sentences[current];
+}
+
+function setSpeed(newSpeed){
+
+    speed = newSpeed;
+
+    if(sentences.length > 0){
+        clearInterval(timer);
+        timer = setInterval(showSentence, speed);
+    }
+}
+
+function toggleFullscreen(){
+
+    if(!document.fullscreenElement){
+        document.documentElement.requestFullscreen();
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+function startRecognition(){
+
+    const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+    if(!SpeechRecognition){
+        alert("Speech Recognition not supported.");
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+
+    recognition.lang =
+    document.getElementById("languageSelect").value;
+
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function(){
+        document.getElementById("spokenText").innerHTML =
+        "🎤 Listening...";
+    };
+
+    recognition.onresult = function(event){
+
+        let spoken = event.results[0][0].transcript;
+
+        document.getElementById("spokenText").innerHTML =
+        "You Read: " + spoken;
+
+        calculateScore(sentences[current], spoken);
+    };
+
+    recognition.onerror = function(event){
+        document.getElementById("spokenText").innerHTML =
+        "Speech Error: " + event.error;
+    };
+
+    recognition.start();
+}
+
+function stopRecognition(){
+    if(recognition){
+        recognition.stop();
+        document.getElementById("spokenText").innerHTML = "Stopped";
+    }
+}
+
+function calculateScore(target, spoken){
+
+    target = target.toLowerCase().replace(/[.,!?]/g,'');
+    spoken = spoken.toLowerCase().replace(/[.,!?]/g,'');
+
+    let targetWords = target.split(/\s+/);
+    let spokenWords = spoken.split(/\s+/);
+
+    let correct = 0;
+
+    targetWords.forEach(function(word){
+        if(spokenWords.includes(word)){
+            correct++;
+        }
+    });
+
+    let score = Math.round((correct / targetWords.length) * 100);
+
+    totalScore += score;
+    scoreCount++;
+
+    document.getElementById("score").innerHTML =
+    "Score : " + score + "%";
+}
+
+function saveFinalResult(score){
+
+    let studentName =
+    document.getElementById("studentName").value;
+
+    let className =
+    document.getElementById("classSelect").value;
+
+    let language =
+    document.getElementById("languageSelect")
+    .options[
+      document.getElementById("languageSelect").selectedIndex
+    ].text;
+
+    if(studentName == ""){
+        return;
+    }
+
+    google.script.run
+.withSuccessHandler(function(msg){
+    alert(msg);
+})
+.withFailureHandler(function(err){
+    alert("ERROR: " + err.message);
+})
+.saveResult(
+    studentName,
+    className,
+    language,
+    score
+);
+}
+
+</script>
+
+</body>
+</html>
