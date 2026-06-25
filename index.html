@@ -121,23 +121,36 @@ let recognition = null;
 let totalScore = 0;
 let scoreCount = 0;
 
-function loadClass(){
+const API_URL =
+"https://script.google.com/macros/s/AKfycbyd5tDMPnSSqfvveyP8nqCZibnIJFay6NUOt3sCnElwmhh9AYPIooJr6ZkaEwlsOZR-/exec";
+
+async function loadClass(){
 
     let className =
     document.getElementById("classSelect").value;
 
-    let languageText =
+    let language =
     document.getElementById("languageSelect")
     .options[
       document.getElementById("languageSelect").selectedIndex
     ].text;
 
-    google.script.run
-    .withSuccessHandler(function(data){
+    try{
 
-        sentences = data;
+        const response =
+        await fetch(
+            API_URL +
+            "?action=getSentences" +
+            "&className=" +
+            encodeURIComponent(className) +
+            "&language=" +
+            encodeURIComponent(language)
+        );
+
+        sentences =
+        await response.json();
+
         current = 0;
-
         totalScore = 0;
         scoreCount = 0;
 
@@ -147,21 +160,26 @@ function loadClass(){
         document.getElementById("spokenText").innerHTML = "";
 
         if(sentences.length > 0){
+
             document.getElementById("sentence").innerHTML =
             sentences[0];
 
             timer =
             setInterval(showSentence, speed);
+
+        }else{
+
+            document.getElementById("sentence").innerHTML =
+            "No Sentences Found";
         }
 
-    })
-    .withFailureHandler(function(error){
+    }catch(error){
 
         document.getElementById("sentence").innerHTML =
-        error.message;
+        "Error Loading Data";
 
-    })
-    .getSentences(className, languageText);
+        console.log(error);
+    }
 }
 
 function showSentence(){
