@@ -144,7 +144,6 @@ async function loadClass(){
     "&language=" +
     encodeURIComponent(language);
 
-alert(testUrl);
         
        const response =
 await fetch(
@@ -158,11 +157,7 @@ await fetch(
 const data =
 await response.json();
 
-alert(JSON.stringify(data));
-
 sentences = data;
-
-alert("Length = " + sentences.length);
 
         current = 0;
         totalScore = 0;
