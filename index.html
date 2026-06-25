@@ -308,7 +308,7 @@ function calculateScore(target, spoken){
     "Score : " + score + "%";
 }
 
-function saveFinalResult(score){
+async function saveFinalResult(score){
 
     let studentName =
     document.getElementById("studentName").value;
@@ -326,19 +326,18 @@ function saveFinalResult(score){
         return;
     }
 
-    google.script.run
-.withSuccessHandler(function(msg){
-    alert(msg);
-})
-.withFailureHandler(function(err){
-    alert("ERROR: " + err.message);
-})
-.saveResult(
-    studentName,
-    className,
-    language,
-    score
-);
+    const url =
+      API_URL +
+      "?action=save" +
+      "&studentName=" + encodeURIComponent(studentName) +
+      "&className=" + encodeURIComponent(className) +
+      "&language=" + encodeURIComponent(language) +
+      "&score=" + encodeURIComponent(score);
+
+    const response = await fetch(url);
+    const result = await response.text();
+
+    console.log(result);
 }
 
 </script>
