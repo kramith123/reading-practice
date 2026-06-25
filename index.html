@@ -137,6 +137,15 @@ async function loadClass(){
 
     try{
 
+        let testUrl =
+    API_URL +
+    "?class=" +
+    encodeURIComponent(className) +
+    "&language=" +
+    encodeURIComponent(language);
+
+alert(testUrl);
+        
         const response =
         await fetch(
             API_URL +
